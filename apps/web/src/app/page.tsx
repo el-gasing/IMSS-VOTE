@@ -96,7 +96,7 @@ export default function HomePage() {
       >
         <div className="noise-overlay pointer-events-none absolute inset-0 z-[1] opacity-10" />
 
-        <div className="absolute left-4 top-1 z-[2] flex items-start md:left-10 md:top-0">
+        <div className="absolute left-3 top-0 z-[2] flex items-start md:left-10 md:top-0">
           <img className="h-[clamp(34px,8vw,80px)] w-auto" src="/fe/logo-imss.png" alt="IMSS Logo" />
           <img className="h-[clamp(34px,8vw,80px)] w-auto" src="/fe/logo-ui.png" alt="UI Logo" />
         </div>
@@ -111,8 +111,12 @@ export default function HomePage() {
 
         <img className="pointer-events-none absolute left-[-18%] top-[40%] z-0 w-[clamp(140px,40vw,420px)] -translate-y-1/2 md:left-[-6%] md:top-[42%] md:w-[clamp(180px,28vw,420px)]" src="/fe/cloud-left.svg" alt="" />
         <img className="pointer-events-none absolute right-[-18%] top-[40%] z-0 w-[clamp(140px,40vw,420px)] -translate-y-1/2 md:right-[-6%] md:top-[42%] md:w-[clamp(180px,28vw,420px)]" src="/fe/cloud-right.svg" alt="" />
-        <img className="pointer-events-none absolute bottom-0 left-[-15%] z-0 w-[130%] md:left-0 md:w-full" src="/fe/cloud-bottom.svg" alt="" />
-        <img className="smoke-flow pointer-events-none absolute bottom-0 left-[-25%] z-[1] w-[150%] opacity-60 md:left-0 md:w-full" src="/fe/smoke.svg" alt="" />
+        <img className="pointer-events-none absolute bottom-0 left-1/2 z-0 w-[175%] max-w-none -translate-x-1/2 md:left-0 md:w-full md:max-w-full md:translate-x-0" src="/fe/cloud-bottom.svg" alt="" />
+        <img
+          className="smoke-flow pointer-events-none absolute bottom-0 left-[47%] z-[1] w-[190%] max-w-none -translate-x-1/2 opacity-60 max-[700px]:left-[-18%] max-[700px]:w-[238%] max-[430px]:left-[-22%] max-[430px]:w-[240%] md:left-0 md:w-full md:max-w-full md:translate-x-0"
+          src="/fe/smoke.svg"
+          alt=""
+        />
 
         <div className="z-[2] w-full max-w-[800px] translate-y-[18px] px-5 text-center md:-translate-y-6">
           <h1 className="mb-5 text-[clamp(34px,5vw,64px)] font-bold tracking-[1px]">PEMIRA IMSS UI</h1>
@@ -127,7 +131,7 @@ export default function HomePage() {
               {checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
             </button>
             <button
-              className="rounded-full border border-[#f2d493] bg-black/20 px-6 py-3 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d]"
+              className="rounded-full border-2 border-[#f2d493] bg-black/20 px-8 py-3 text-base font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d]"
               onClick={() => router.push("/logs")}
             >
               VIEW LOGS
