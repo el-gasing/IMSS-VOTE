@@ -6,7 +6,15 @@ import { SignJWT } from "jose";
 import { z } from "zod";
 import { isAddress, getAddress, verifyMessage } from "viem";
 import { env } from "./env.js";
-import { addAdminUsername, initDb, listAdminUsernames, pool, removeAdminUsername } from "./db.js";
+import {
+  addAdminUsername,
+  initDb,
+  insertActivityLog,
+  listActivityLogs,
+  listAdminUsernames,
+  pool,
+  removeAdminUsername
+} from "./db.js";
 import { decodeSession, requireAdmin, requireAuth, requireInternalKey } from "./auth.js";
 import { castVoteByUserSubOnChain, whitelistOnChain } from "./chain.js";
 import { buildCasLoginUrl, buildCasLogoutUrl, validateCasTicket } from "./cas.js";
@@ -24,6 +32,51 @@ app.use(
     methods: ["GET", "POST", "OPTIONS"]
   })
 );
+
+app.use(async (req, res, next) => {
+  if (req.path === "/health") {
+    next();
+    return;
+  }
+
+  let actorSub: string | null = null;
+  let actorEmail: string | null = null;
+
+  try {
+    const user = await decodeSession(req);
+    actorSub = user.sub;
+    actorEmail = user.email;
+  } catch {
+    // Keep anonymous actor for unauthenticated requests.
+  }
+
+  const startedAt = Date.now();
+  const ip = getRequestIp(req);
+  const userAgent = req.header("user-agent") || null;
+  const method = req.method.toUpperCase();
+  const path = req.path;
+  const action = `${method} ${path}`;
+
+  res.on("finish", () => {
+    void insertActivityLog({
+      actorSub,
+      actorEmail,
+      action,
+      method,
+      path,
+      statusCode: res.statusCode,
+      ip,
+      userAgent,
+      detail: {
+        duration_ms: Date.now() - startedAt
+      }
+    }).catch((error) => {
+      console.error("activity_log_insert_failed", (error as Error).message);
+    });
+  });
+
+  next();
+});
 
 const nonceBodySchema = z.object({ wallet: z.string() });
 const bindBodySchema = z.object({
@@ -43,6 +96,8 @@ const voteRecordBodySchema = z.object({
 const voteCastBodySchema = z.object({
   choice: z.enum(["paslon1", "kotak_kosong"])
 });
+
+type AdminVoteChoice = "paslon1" | "kotak_kosong" | "unknown";
 
 function nowPlusMinutes(minutes: number): Date {
   return new Date(Date.now() + minutes * 60_000);
@@ -83,6 +138,12 @@ function normalizeForwardedHeader(value: string | undefined): string | null {
   if (!value) return null;
   const first = value.split(",")[0]?.trim();
   return first || null;
+}
+
+function getRequestIp(req: express.Request): string {
+  const forwarded = normalizeForwardedHeader(req.header("x-forwarded-for"));
+  if (forwarded) return forwarded;
+  return req.ip || req.socket.remoteAddress || "unknown";
 }
 
 function normalizePublicBaseUrl(baseUrl: string, req: express.Request): string {
@@ -377,6 +438,12 @@ app.get("/vote/status", requireAuth, async (req, res) => {
   res.json({ hasVoted: true, vote: vote.rows[0] });
 });
 
+app.get("/logs", requireAuth, async (req, res) => {
+  const parsedLimit = typeof req.query.limit === "string" ? Number.parseInt(req.query.limit, 10) : 300;
+  const logs = await listActivityLogs(parsedLimit);
+  res.json({ logs });
+});
+
 app.post("/vote/record", requireAuth, async (req, res) => {
   const parsed = voteRecordBodySchema.safeParse(req.body);
   if (!parsed.success) {
@@ -536,6 +603,41 @@ app.get("/admin/registrations", requireAuth, requireAdmin, async (_req, res) => 
   res.json({
     registrations: rows.rows.map((row: Record<string, unknown>) => toRegistration(row))
   });
+});
+
+app.get("/admin/votes", requireAuth, requireAdmin, async (_req, res) => {
+  const rows = await pool.query(
+    `
+      SELECT
+        v.ui_subject_id,
+        v.ketum_candidate_id,
+        v.waketum_candidate_id,
+        v.tx_hash_ketum,
+        v.created_at,
+        r.email_ui
+      FROM votes v
+      LEFT JOIN registrations r ON r.ui_subject_id = v.ui_subject_id
+      ORDER BY v.created_at DESC
+      LIMIT 2000
+    `
+  );
+
+  const votes = rows.rows.map((row: Record<string, unknown>) => {
+    const ketum = Number(row.ketum_candidate_id);
+    const waketum = Number(row.waketum_candidate_id);
+    const choice: AdminVoteChoice =
+      ketum === 1 && waketum === 11 ? "paslon1" : ketum === 2 && waketum === 12 ? "kotak_kosong" : "unknown";
+
+    return {
+      participant: String(row.ui_subject_id),
+      email: row.email_ui ? String(row.email_ui) : null,
+      choice,
+      created_at: String(row.created_at),
+      tx_hash: String(row.tx_hash_ketum)
+    };
+  });
+
+  res.json({ votes });
 });
 
 app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {

@@ -1,18 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { electionAbi, electionAddress } from "@/lib/contract";
-import { publicClient } from "@/lib/evm";
-
-interface Candidate {
-  id: bigint;
-  name: string;
-}
-
-interface ResultItem {
-  candidateId: bigint;
-  votes: bigint;
-}
 
 interface MeResponse {
   authenticated: boolean;
@@ -25,21 +13,19 @@ interface MeResponse {
 
 interface AdminUsersResponse {
   admins: string[];
+  error?: string;
 }
 
-interface CandidateStat {
-  section: "ketum" | "waketum";
-  candidateId: bigint;
-  candidateName: string;
-  votes: bigint;
-  percentage: number;
-  totalVotesInSection: bigint;
+interface AdminVoteRow {
+  participant: string;
+  email: string | null;
+  choice: "paslon1" | "kotak_kosong" | "unknown";
+  created_at: string;
+  tx_hash: string;
 }
 
-function bigIntToNumberSafe(value: bigint): number {
-  const max = BigInt(Number.MAX_SAFE_INTEGER);
-  if (value > max) return Number.MAX_SAFE_INTEGER;
-  return Number(value);
+interface AdminVotesResponse {
+  votes: AdminVoteRow[];
 }
 
 function escapeCsv(value: string): string {
@@ -49,42 +35,16 @@ function escapeCsv(value: string): string {
   return value;
 }
 
-function buildStats(section: "ketum" | "waketum", candidates: Candidate[], results: ResultItem[]): CandidateStat[] {
-  const voteMap = new Map(results.map((r) => [r.candidateId.toString(), r.votes]));
-  const total = results.reduce((sum, r) => sum + r.votes, 0n);
-
-  return candidates
-    .map((candidate) => {
-      const votes = voteMap.get(candidate.id.toString()) ?? 0n;
-      const percentage = total === 0n ? 0 : (bigIntToNumberSafe(votes) / bigIntToNumberSafe(total)) * 100;
-      return {
-        section,
-        candidateId: candidate.id,
-        candidateName: candidate.name,
-        votes,
-        percentage,
-        totalVotesInSection: total
-      };
-    })
-    .sort((a, b) => {
-      if (a.votes === b.votes) return 0;
-      return a.votes > b.votes ? -1 : 1;
-    });
+function choiceLabel(choice: AdminVoteRow["choice"]): string {
+  if (choice === "paslon1") return "Paslon 1";
+  if (choice === "kotak_kosong") return "Kotak Kosong";
+  return "Unknown";
 }
 
-function downloadCsv(rows: CandidateStat[]): void {
-  const header = ["section", "candidate_id", "candidate_name", "votes", "percentage", "total_votes_section"];
-  const lines = rows.map((row) =>
-    [
-      row.section,
-      row.candidateId.toString(),
-      row.candidateName,
-      row.votes.toString(),
-      row.percentage.toFixed(2),
-      row.totalVotesInSection.toString()
-    ]
-      .map(escapeCsv)
-      .join(",")
+function downloadCsv(votes: AdminVoteRow[]): void {
+  const header = ["participant", "email", "choice", "created_at", "tx_hash"];
+  const lines = votes.map((row) =>
+    [row.participant, row.email ?? "", choiceLabel(row.choice), row.created_at, row.tx_hash].map(escapeCsv).join(",")
   );
 
   const csv = [header.join(","), ...lines].join("\n");
@@ -94,36 +54,30 @@ function downloadCsv(rows: CandidateStat[]): void {
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `imss-voting-results-${timestamp}.csv`;
+  link.download = `imss-voters-${timestamp}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
 
-function VoteChart({ title, rows }: { title: string; rows: CandidateStat[] }) {
+function PercentBar({ label, value, total }: { label: string; value: number; total: number }) {
+  const pct = total <= 0 ? 0 : (value / total) * 100;
   return (
-    <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
-      <h2 className="mb-5 text-xl font-semibold text-[#f2d493]">{title}</h2>
-      <div className="space-y-4">
-        {rows.map((row) => (
-          <div key={`${row.section}-${row.candidateId.toString()}`}>
-            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-              <span className="text-[#f6f4f2]">{row.candidateName}</span>
-              <strong className="text-[#f2d493]">
-                {row.votes.toString()} vote ({row.percentage.toFixed(2)}%)
-              </strong>
-            </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-white/15">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500"
-                style={{ width: `${Math.max(row.percentage, 0)}%` }}
-              />
-            </div>
-          </div>
-        ))}
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+        <span className="text-[#f6f4f2]">{label}</span>
+        <strong className="text-[#f2d493]">
+          {value} vote ({pct.toFixed(2)}%)
+        </strong>
       </div>
-    </article>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white/15">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500"
+          style={{ width: `${Math.max(pct, 0)}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -135,11 +89,10 @@ export default function AdminPage() {
   const [selfUsername, setSelfUsername] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [adminUsers, setAdminUsers] = useState<string[]>([]);
+  const [votes, setVotes] = useState<AdminVoteRow[]>([]);
   const [newAdminUsername, setNewAdminUsername] = useState("");
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [adminMutationError, setAdminMutationError] = useState("");
-  const [ketumStats, setKetumStats] = useState<CandidateStat[]>([]);
-  const [waketumStats, setWaketumStats] = useState<CandidateStat[]>([]);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -162,41 +115,22 @@ export default function AdminPage() {
         setSelfUsername(me.user.sub);
         setAuthChecked(true);
 
-        const adminRes = await fetch("/api/admin/users", { credentials: "include" });
+        const [adminRes, votesRes] = await Promise.all([
+          fetch("/api/admin/users", { credentials: "include" }),
+          fetch("/api/admin/votes", { credentials: "include" })
+        ]);
+
         if (adminRes.ok) {
           const adminData = (await adminRes.json()) as AdminUsersResponse;
           setAdminUsers(adminData.admins || []);
         }
 
-        const ketumCandidates = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getKetumCandidates"
-        })) as Candidate[];
-
-        const waketumCandidates = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getWaketumCandidates"
-        })) as Candidate[];
-
-        const [ketumResult, waketumResult] = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getResults"
-        })) as [ResultItem[], ResultItem[]];
-
-        setKetumStats(buildStats("ketum", ketumCandidates, ketumResult));
-        setWaketumStats(buildStats("waketum", waketumCandidates, waketumResult));
-      } catch (err) {
-        const message = (err as Error).message || "Gagal memuat hasil voting";
-        if (message.includes("returned no data") || message.includes("address is not a contract")) {
-          setError(
-            `Kontrak voting belum terdeteksi di address ${electionAddress}. Isi NEXT_PUBLIC_ELECTION_CONTRACT_ADDRESS dengan alamat kontrak Election yang sudah deploy, lalu rebuild web.`
-          );
-        } else {
-          setError(message);
+        if (votesRes.ok) {
+          const voteData = (await votesRes.json()) as AdminVotesResponse;
+          setVotes(voteData.votes || []);
         }
+      } catch (err) {
+        setError((err as Error).message || "Gagal memuat data admin");
       } finally {
         setLoading(false);
       }
@@ -205,9 +139,9 @@ export default function AdminPage() {
     load().catch(() => setLoading(false));
   }, []);
 
-  const allStats = useMemo(() => [...ketumStats, ...waketumStats], [ketumStats, waketumStats]);
-  const totalKetumVotes = ketumStats.reduce((sum, row) => sum + row.votes, 0n);
-  const totalWaketumVotes = waketumStats.reduce((sum, row) => sum + row.votes, 0n);
+  const totalVotes = votes.length;
+  const paslon1Votes = useMemo(() => votes.filter((row) => row.choice === "paslon1").length, [votes]);
+  const kotakKosongVotes = useMemo(() => votes.filter((row) => row.choice === "kotak_kosong").length, [votes]);
 
   async function addAdmin(): Promise<void> {
     const username = newAdminUsername.trim().toLowerCase();
@@ -221,7 +155,7 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username })
       });
-      const data = (await res.json()) as AdminUsersResponse & { error?: string };
+      const data = (await res.json()) as AdminUsersResponse;
       if (!res.ok) {
         throw new Error(data.error || "Gagal menambah admin");
       }
@@ -242,7 +176,7 @@ export default function AdminPage() {
         method: "DELETE",
         credentials: "include"
       });
-      const data = (await res.json()) as AdminUsersResponse & { error?: string };
+      const data = (await res.json()) as AdminUsersResponse;
       if (!res.ok) {
         throw new Error(data.error || "Gagal menghapus admin");
       }
@@ -285,15 +219,15 @@ export default function AdminPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Admin Panel</p>
-              <h1 className="text-3xl font-bold">Dashboard Hasil Voting</h1>
+              <h1 className="text-3xl font-bold">Dashboard Voting</h1>
               <p className="mt-2 text-sm text-white/75">Login sebagai: {adminEmail || "-"}</p>
             </div>
             <button
               className="rounded-full border border-[#f2d493]/60 px-5 py-2.5 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d] disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={() => downloadCsv(allStats)}
-              disabled={loading || allStats.length === 0}
+              onClick={() => downloadCsv(votes)}
+              disabled={loading || votes.length === 0}
             >
-              Export CSV
+              Export CSV Participant
             </button>
           </div>
           {error ? <p className="mt-4 rounded-lg border border-red-300/30 bg-red-900/30 px-4 py-3 text-sm text-red-100">{error}</p> : null}
@@ -341,21 +275,54 @@ export default function AdminPage() {
           </div>
         </article>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
-            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Total Vote Ketua Umum</h3>
-            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{totalKetumVotes.toString()}</p>
+            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Total Participant Vote</h3>
+            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{totalVotes}</p>
           </article>
           <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
-            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Total Vote Wakil Ketua Umum</h3>
-            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{totalWaketumVotes.toString()}</p>
+            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Paslon 1</h3>
+            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{paslon1Votes}</p>
+          </article>
+          <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Kotak Kosong</h3>
+            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{kotakKosongVotes}</p>
           </article>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <VoteChart title="Grafik Ketua Umum" rows={ketumStats} />
-          <VoteChart title="Grafik Wakil Ketua Umum" rows={waketumStats} />
-        </div>
+        <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+          <h2 className="mb-5 text-xl font-semibold text-[#f2d493]">Perbandingan Vote</h2>
+          <div className="space-y-4">
+            <PercentBar label="Paslon 1" value={paslon1Votes} total={Math.max(totalVotes, 1)} />
+            <PercentBar label="Kotak Kosong" value={kotakKosongVotes} total={Math.max(totalVotes, 1)} />
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+          <h2 className="mb-4 text-xl font-semibold text-[#f2d493]">Daftar Participant</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/15 text-[#f2d493]">
+                  <th className="px-3 py-2 font-semibold">Participant</th>
+                  <th className="px-3 py-2 font-semibold">Email</th>
+                  <th className="px-3 py-2 font-semibold">Pilihan</th>
+                  <th className="px-3 py-2 font-semibold">Waktu Vote</th>
+                </tr>
+              </thead>
+              <tbody>
+                {votes.map((row) => (
+                  <tr key={`${row.participant}-${row.created_at}-${row.tx_hash}`} className="border-b border-white/10 text-white/85">
+                    <td className="px-3 py-2">{row.participant}</td>
+                    <td className="px-3 py-2">{row.email || "-"}</td>
+                    <td className="px-3 py-2">{choiceLabel(row.choice)}</td>
+                    <td className="px-3 py-2">{new Date(row.created_at).toLocaleString("id-ID")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
       </div>
     </section>
   );
