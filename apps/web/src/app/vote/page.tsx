@@ -123,7 +123,7 @@ export default function VotePage() {
   }
 
   return (
-    <section className="relative min-h-screen w-full overflow-hidden text-[#f6f4f2]">
+    <section className="relative min-h-screen w-full overflow-x-hidden text-[#f6f4f2]">
       <div
         className={`fixed left-1/2 top-6 z-20 -translate-x-1/2 rounded-xl border border-white/20 bg-black/80 px-4 py-3 text-sm transition-all ${
           toastVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
@@ -132,7 +132,7 @@ export default function VotePage() {
         {toast || "-"}
       </div>
 
-      <div className={`${view === "vote" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 transition-opacity duration-300`}>
+      <div className={`${view === "vote" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 overflow-y-auto transition-opacity duration-300`}>
         <div
           className="relative flex min-h-screen items-start justify-center bg-cover bg-center bg-no-repeat pt-6 sm:items-center sm:pt-0"
           style={{ backgroundImage: "url('/fe/background-voting.png')" }}
@@ -185,7 +185,7 @@ export default function VotePage() {
         </div>
       </div>
 
-      <div className={`${view === "success" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 transition-opacity duration-300`}>
+      <div className={`${view === "success" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 overflow-y-auto transition-opacity duration-300`}>
         <div
           className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/fe/background-voting.png')" }}
