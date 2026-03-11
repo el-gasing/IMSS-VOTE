@@ -1,0 +1,260 @@
+@font-face {
+  font-family: "LydianBT";
+  src: url("/fe/fonts_lydian/lydianbt_roman.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #f6f4f2;
+}
+
+.page {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url("/fe/imss-home.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #7a3139;
+}
+
+.texture {
+  position: absolute;
+  inset: 0;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.12;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.homeLogos {
+  position: absolute;
+  top: 0;
+  left: 40px;
+  display: flex;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+.homeLogo {
+  height: clamp(40px, 6vw, 80px);
+  width: auto;
+  display: block;
+}
+
+.slogan {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  font-family: "LydianBT", serif;
+  text-align: left;
+  font-size: clamp(20px, 2vw, 40px);
+  line-height: 0.92;
+  letter-spacing: -0.5px;
+  color: #e8e8e8;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+.cloudRight,
+.cloudLeft,
+.cloudBottom,
+.smokeBottom {
+  position: absolute;
+  pointer-events: none;
+}
+
+.cloudRight {
+  right: -6%;
+  top: 42%;
+  transform: translateY(-50%);
+  width: clamp(180px, 28vw, 420px);
+  z-index: 0;
+}
+
+.cloudLeft {
+  left: -6%;
+  top: 42%;
+  transform: translateY(-50%);
+  width: clamp(180px, 28vw, 420px);
+  z-index: 0;
+}
+
+.cloudBottom {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 0;
+}
+
+.smokeBottom {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 1;
+  opacity: 0.58;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+  animation: smokeFlow 7s ease-in-out infinite alternate;
+}
+
+@keyframes smokeFlow {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.42;
+  }
+  35% {
+    transform: translate3d(-2.4%, -12px, 0) scale(1.04);
+    opacity: 0.66;
+  }
+  70% {
+    transform: translate3d(2.4%, -20px, 0) scale(1.06);
+    opacity: 0.56;
+  }
+  100% {
+    transform: translate3d(1.2%, -28px, 0) scale(1.09);
+    opacity: 0.46;
+  }
+}
+
+.hero {
+  max-width: 800px;
+  text-align: center;
+  z-index: 2;
+  transform: translateY(-24px);
+  padding: 0 20px;
+}
+
+.homeTitle {
+  font-size: clamp(34px, 5vw, 64px);
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.voteBtn {
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 40px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.voteBtn:hover:not(:disabled) {
+  background: #fff;
+  color: #c2410c;
+}
+
+.voteBtn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toastShow {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.shake {
+  animation: shake 0.45s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .homeLogos {
+    left: 18px;
+    top: 4px;
+  }
+
+  .homeLogo {
+    height: clamp(34px, 8vw, 60px);
+  }
+
+  .slogan {
+    top: 18px;
+    right: 18px;
+    font-size: clamp(16px, 3.6vw, 28px);
+  }
+
+  .cloudLeft {
+    left: -18%;
+    top: 40%;
+    width: clamp(140px, 40vw, 320px);
+  }
+
+  .cloudRight {
+    right: -18%;
+    top: 40%;
+    width: clamp(140px, 40vw, 320px);
+  }
+}
+
+@media (max-width: 560px) {
+  .hero {
+    transform: translateY(18px);
+  }
+
+  .voteBtn {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  .smokeBottom {
+    width: 150%;
+    left: -25%;
+  }
+
+  .cloudBottom {
+    width: 130%;
+    left: -15%;
+  }
+}

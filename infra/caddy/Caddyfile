@@ -1,0 +1,13 @@
+{$DOMAIN:localhost} {
+  encode gzip
+
+  @api path /api/*
+  handle @api {
+    uri strip_prefix /api
+    reverse_proxy api:4000
+  }
+
+  handle {
+    reverse_proxy web:3000
+  }
+}
