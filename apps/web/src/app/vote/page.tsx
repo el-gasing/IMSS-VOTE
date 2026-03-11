@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./vote.module.css";
 
 type VoteChoice = "paslon1" | "kotak_kosong";
 type ViewMode = "vote" | "success";
@@ -28,7 +27,6 @@ export default function VotePage() {
   const [toast, setToast] = useState("");
   const [view, setView] = useState<ViewMode>("vote");
   const [txHash, setTxHash] = useState("");
-  const [me, setMe] = useState<MeResponse>({ authenticated: false });
 
   const toastVisible = useMemo(() => Boolean(toast), [toast]);
 
@@ -37,7 +35,6 @@ export default function VotePage() {
       try {
         const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
         const meData = (meRes.ok ? await meRes.json() : { authenticated: false }) as MeResponse;
-        setMe(meData);
 
         if (!meData.authenticated) {
           window.location.href = `${API_BASE}/auth/cas/login?redirect=/vote`;
@@ -118,56 +115,94 @@ export default function VotePage() {
   }
 
   if (loading) {
-    return <section className={styles.loading}><p>Memuat sesi login...</p></section>;
+    return (
+      <section className="grid min-h-screen place-items-center bg-[#130d0e] text-[#f6f4f2]">
+        <p>Memuat sesi login...</p>
+      </section>
+    );
   }
 
   return (
-    <section className={styles.root}>
-      <div className={`${styles.toast} ${toastVisible ? styles.toastShow : ""}`}>{toast || "-"}</div>
+    <section className="relative min-h-screen w-full overflow-hidden text-[#f6f4f2]">
+      <div
+        className={`fixed left-1/2 top-6 z-20 -translate-x-1/2 rounded-xl border border-white/20 bg-black/80 px-4 py-3 text-sm transition-all ${
+          toastVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+        }`}
+      >
+        {toast || "-"}
+      </div>
 
-      <div className={`${styles.page} ${styles.vote} ${view === "vote" ? "" : styles.hidden}`}>
-        <div className={styles.texture} />
-        <button className={styles.voteBack} onClick={() => router.push("/")} aria-label="Kembali">←</button>
+      <div className={`${view === "vote" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 transition-opacity duration-300`}>
+        <div
+          className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/fe/background-voting.png')" }}
+        >
+          <div className="noise-overlay pointer-events-none absolute inset-0 z-[1] opacity-10" />
+          <button
+            className="absolute left-5 top-5 z-[3] grid h-11 w-11 place-items-center rounded-full bg-black/35 text-2xl text-white transition hover:bg-black/60"
+            onClick={() => router.push("/")}
+            aria-label="Kembali"
+          >
+            ←
+          </button>
 
-        <div className={styles.hero}>
-          <h1 className={styles.voteTitle}>PILIH KETUA UMUM</h1>
-          {error ? <p className={styles.error}>{error}</p> : null}
+          <div className="z-[2] w-full max-w-6xl px-5 text-center">
+            <h1 className="text-[clamp(30px,4vw,42px)] font-bold">PILIH KETUA UMUM</h1>
+            {error ? <p className="mt-3 text-red-200">{error}</p> : null}
 
-          <div className={styles.voteContainer}>
-            <article className={styles.candidate}>
-              <img src="/fe/Paslon1.jpg" alt="Paslon 1" />
-              <div className={styles.candidateInfo}>
-                <p className={styles.candidateNumber}>PASLON 01</p>
-                <p className={styles.candidateName}>Rifqi Ramadhani<br />M Naufal Zhafran</p>
-                <button className={styles.pickBtn} onClick={() => castVote("paslon1")} disabled={submitting || alreadyVoted}>
-                  {submitting ? "MEMPROSES..." : "PILIH"}
-                </button>
-              </div>
-            </article>
+            <div className="mt-7 flex flex-wrap justify-center gap-8">
+              <article className="w-[min(360px,92vw)] overflow-hidden rounded-xl border border-white/15 bg-white/5 transition hover:-translate-y-2 hover:border-white/30 hover:shadow-soft">
+                <img className="block aspect-video w-full object-cover" src="/fe/Paslon1.jpg" alt="Paslon 1" />
+                <div className="px-4 pb-6 pt-5 text-center">
+                  <p className="text-[13px] tracking-[1.5px] text-white/75">PASLON 01</p>
+                  <p className="my-3 text-xl leading-[1.35]">Rifqi Ramadhani<br />M Naufal Zhafran</p>
+                  <button
+                    className="rounded-full border-2 border-white bg-transparent px-6 py-2.5 transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
+                    onClick={() => castVote("paslon1")}
+                    disabled={submitting || alreadyVoted}
+                  >
+                    {submitting ? "MEMPROSES..." : "PILIH"}
+                  </button>
+                </div>
+              </article>
 
-            <article className={styles.candidate}>
-              <img src="/fe/kotakkosong.jpg" alt="Kotak Kosong" />
-              <div className={styles.candidateInfo}>
-                <p className={styles.candidateNumber}>KOTAK KOSONG</p>
-                <p className={styles.candidateName}>Tidak memilih kandidat</p>
-                <button className={styles.pickBtn} onClick={() => castVote("kotak_kosong")} disabled={submitting || alreadyVoted}>
-                  {submitting ? "MEMPROSES..." : "PILIH"}
-                </button>
-              </div>
-            </article>
+              <article className="w-[min(360px,92vw)] overflow-hidden rounded-xl border border-white/15 bg-white/5 transition hover:-translate-y-2 hover:border-white/30 hover:shadow-soft">
+                <img className="block aspect-video w-full object-cover" src="/fe/kotakkosong.jpg" alt="Kotak Kosong" />
+                <div className="px-4 pb-6 pt-5 text-center">
+                  <p className="text-[13px] tracking-[1.5px] text-white/75">KOTAK KOSONG</p>
+                  <p className="my-3 text-xl leading-[1.35]">Tidak memilih kandidat</p>
+                  <button
+                    className="rounded-full border-2 border-white bg-transparent px-6 py-2.5 transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
+                    onClick={() => castVote("kotak_kosong")}
+                    disabled={submitting || alreadyVoted}
+                  >
+                    {submitting ? "MEMPROSES..." : "PILIH"}
+                  </button>
+                </div>
+              </article>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className={`${styles.page} ${styles.success} ${view === "success" ? "" : styles.hidden}`}>
-        <div className={styles.texture} />
-        <div className={styles.hero}>
-          <div className={styles.successBox}>
-            <h1>VOTE RECORDED</h1>
-            <p>Terima kasih telah menggunakan Hak Pilih Anda.</p>
-            <p className={styles.tx}>Transaction ID: {txHash ? txShort(txHash) : "(tersimpan)"}</p>
-            <br />
-            <button className={styles.btn} onClick={() => router.push("/")}>BACK TO HOME</button>
+      <div className={`${view === "success" ? "opacity-100" : "pointer-events-none opacity-0"} absolute inset-0 transition-opacity duration-300`}>
+        <div
+          className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/fe/background-voting.png')" }}
+        >
+          <div className="noise-overlay pointer-events-none absolute inset-0 z-[1] opacity-10" />
+          <div className="z-[2] rounded-xl border border-white/15 bg-black/40 px-8 py-10 text-center shadow-soft">
+            <h1 className="text-4xl font-bold">VOTE RECORDED</h1>
+            <p className="mt-3">Terima kasih telah menggunakan Hak Pilih Anda.</p>
+            <p className="mt-3 break-all font-mono text-xs tracking-wide text-white/85">
+              Transaction ID: {txHash ? txShort(txHash) : "(tersimpan)"}
+            </p>
+            <button
+              className="mt-6 rounded-full border-2 border-white bg-transparent px-8 py-3 transition hover:bg-white hover:text-[#c2410c]"
+              onClick={() => router.push("/")}
+            >
+              BACK TO HOME
+            </button>
           </div>
         </div>
       </div>

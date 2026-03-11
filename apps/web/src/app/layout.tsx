@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
+import { TabSessionGuard } from "@/components/tab-session-guard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id">
       <body>
         <Providers>
+          <TabSessionGuard />
           <main>{children}</main>
         </Providers>
       </body>
