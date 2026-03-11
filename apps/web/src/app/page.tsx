@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./home.module.css";
 
 interface MeResponse {
   authenticated: boolean;
@@ -82,17 +81,27 @@ export default function HomePage() {
   }
 
   return (
-    <section className={styles.root}>
-      <div className={`${styles.toast} ${toastVisible ? styles.toastShow : ""}`}>{toast || "-"}</div>
-      <div className={styles.page}>
-        <div className={styles.texture} />
+    <section className="relative min-h-screen w-full overflow-hidden text-[#f6f4f2]">
+      <div
+        className={`fixed left-1/2 top-6 z-20 -translate-x-1/2 rounded-xl border border-white/20 bg-black/80 px-4 py-3 text-sm transition-all ${
+          toastVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+        }`}
+      >
+        {toast || "-"}
+      </div>
 
-        <div className={styles.homeLogos}>
-          <img className={styles.homeLogo} src="/fe/logo-imss.png" alt="IMSS Logo" />
-          <img className={styles.homeLogo} src="/fe/logo-ui.png" alt="UI Logo" />
+      <div
+        className="relative flex min-h-screen items-center justify-center bg-[#7a3139] bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/fe/imss-home.png')" }}
+      >
+        <div className="noise-overlay pointer-events-none absolute inset-0 z-[1] opacity-10" />
+
+        <div className="absolute left-4 top-1 z-[2] flex items-start md:left-10 md:top-0">
+          <img className="h-[clamp(34px,8vw,80px)] w-auto" src="/fe/logo-imss.png" alt="IMSS Logo" />
+          <img className="h-[clamp(34px,8vw,80px)] w-auto" src="/fe/logo-ui.png" alt="UI Logo" />
         </div>
 
-        <div className={styles.slogan}>
+        <div className="font-lydian absolute right-4 top-4 z-[2] text-left text-[clamp(16px,3.6vw,40px)] leading-[0.92] tracking-[-0.5px] text-[#e8e8e8] drop-shadow-[3px_3px_0_rgba(0,0,0,0.45)] md:right-10 md:top-8">
           Sipakatau
           <br />
           Sipakalebbi
@@ -100,15 +109,17 @@ export default function HomePage() {
           Sipakainge
         </div>
 
-        <img className={styles.cloudLeft} src="/fe/cloud-left.svg" alt="" />
-        <img className={styles.cloudRight} src="/fe/cloud-right.svg" alt="" />
-        <img className={styles.cloudBottom} src="/fe/cloud-bottom.svg" alt="" />
-        <img className={styles.smokeBottom} src="/fe/smoke.svg" alt="" />
+        <img className="pointer-events-none absolute left-[-18%] top-[40%] z-0 w-[clamp(140px,40vw,420px)] -translate-y-1/2 md:left-[-6%] md:top-[42%] md:w-[clamp(180px,28vw,420px)]" src="/fe/cloud-left.svg" alt="" />
+        <img className="pointer-events-none absolute right-[-18%] top-[40%] z-0 w-[clamp(140px,40vw,420px)] -translate-y-1/2 md:right-[-6%] md:top-[42%] md:w-[clamp(180px,28vw,420px)]" src="/fe/cloud-right.svg" alt="" />
+        <img className="pointer-events-none absolute bottom-0 left-[-15%] z-0 w-[130%] md:left-0 md:w-full" src="/fe/cloud-bottom.svg" alt="" />
+        <img className="smoke-flow pointer-events-none absolute bottom-0 left-[-25%] z-[1] w-[150%] opacity-60 md:left-0 md:w-full" src="/fe/smoke.svg" alt="" />
 
-        <div className={styles.hero}>
-          <h1 className={styles.homeTitle}>PEMIRA IMSS UI</h1>
+        <div className="z-[2] w-full max-w-[800px] translate-y-[18px] px-5 text-center md:-translate-y-6">
+          <h1 className="mb-5 text-[clamp(34px,5vw,64px)] font-bold tracking-[1px]">PEMIRA IMSS UI</h1>
           <button
-            className={`${styles.voteBtn} ${shake ? styles.shake : ""}`}
+            className={`rounded-full border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition hover:bg-white hover:text-[#c2410c] disabled:cursor-wait disabled:opacity-70 ${
+              shake ? "btn-shake" : ""
+            }`}
             onClick={handleVoteNow}
             disabled={checking || navigating}
           >

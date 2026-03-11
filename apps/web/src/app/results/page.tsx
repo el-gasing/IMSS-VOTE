@@ -50,22 +50,28 @@ export default function ResultsPage() {
   }, []);
 
   return (
-    <div className="card">
-      <h1>Hasil Voting On-Chain</h1>
+    <section className="mx-auto w-full max-w-4xl px-4 py-10">
+      <div className="rounded-2xl border border-white/15 bg-black/35 p-6 shadow-soft">
+        <h1 className="text-3xl font-bold text-[#f2d493]">Hasil Voting On-Chain</h1>
 
-      <h2>Ketua Umum</h2>
-      {ketum.map((item) => (
-        <p key={item.candidateId.toString()}>
-          {ketumMap.get(item.candidateId.toString()) || `ID ${item.candidateId.toString()}`}: {item.votes.toString()} vote
-        </p>
-      ))}
+        <h2 className="mt-6 text-lg font-semibold">Ketua Umum</h2>
+        <div className="mt-2 space-y-1 text-sm text-white/85">
+          {ketum.map((item) => (
+            <p key={item.candidateId.toString()}>
+              {ketumMap.get(item.candidateId.toString()) || `ID ${item.candidateId.toString()}`}: {item.votes.toString()} vote
+            </p>
+          ))}
+        </div>
 
-      <h2>Wakil Ketua Umum</h2>
-      {waketum.map((item) => (
-        <p key={item.candidateId.toString()}>
-          {waketumMap.get(item.candidateId.toString()) || `ID ${item.candidateId.toString()}`}: {item.votes.toString()} vote
-        </p>
-      ))}
-    </div>
+        <h2 className="mt-6 text-lg font-semibold">Wakil Ketua Umum</h2>
+        <div className="mt-2 space-y-1 text-sm text-white/85">
+          {waketum.map((item) => (
+            <p key={item.candidateId.toString()}>
+              {waketumMap.get(item.candidateId.toString()) || `ID ${item.candidateId.toString()}`}: {item.votes.toString()} vote
+            </p>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

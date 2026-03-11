@@ -7,7 +7,7 @@ import { z } from "zod";
 import { isAddress, getAddress, verifyMessage } from "viem";
 import { env } from "./env.js";
 import { addAdminUsername, initDb, listAdminUsernames, pool, removeAdminUsername } from "./db.js";
-import { decodeSession, requireAdmin, requireAuth, requireInternalKey, requireVoter } from "./auth.js";
+import { decodeSession, requireAdmin, requireAuth, requireInternalKey } from "./auth.js";
 import { castVoteByUserSubOnChain, whitelistOnChain } from "./chain.js";
 import { buildCasLoginUrl, buildCasLogoutUrl, validateCasTicket } from "./cas.js";
 import type { CasUser, RegistrationRecord, RegistrationStatus } from "./types.js";
@@ -175,7 +175,6 @@ app.get("/auth/cas/callback", async (req, res) => {
       httpOnly: true,
       sameSite: "lax",
       secure: env.NODE_ENV === "production",
-      maxAge: 8 * 60 * 60 * 1000,
       path: "/"
     });
 
@@ -358,7 +357,7 @@ app.post("/registration/bind-wallet", requireAuth, async (req, res) => {
   res.json({ registration: toRegistration(updated.rows[0]) });
 });
 
-app.get("/vote/status", requireAuth, requireVoter, async (req, res) => {
+app.get("/vote/status", requireAuth, async (req, res) => {
   const userSub = req.user!.sub;
   const vote = await pool.query(
     `
@@ -378,7 +377,7 @@ app.get("/vote/status", requireAuth, requireVoter, async (req, res) => {
   res.json({ hasVoted: true, vote: vote.rows[0] });
 });
 
-app.post("/vote/record", requireAuth, requireVoter, async (req, res) => {
+app.post("/vote/record", requireAuth, async (req, res) => {
   const parsed = voteRecordBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid payload", detail: parsed.error.flatten() });
@@ -423,7 +422,7 @@ app.post("/vote/record", requireAuth, requireVoter, async (req, res) => {
   res.json({ ok: true, vote: insert.rows[0] });
 });
 
-app.post("/vote/cast", requireAuth, requireVoter, async (req, res) => {
+app.post("/vote/cast", requireAuth, async (req, res) => {
   const parsed = voteCastBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid payload", detail: parsed.error.flatten() });

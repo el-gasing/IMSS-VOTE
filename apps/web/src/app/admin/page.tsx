@@ -43,8 +43,8 @@ function bigIntToNumberSafe(value: bigint): number {
 }
 
 function escapeCsv(value: string): string {
-  if (value.includes(",") || value.includes("\"") || value.includes("\n")) {
-    return `"${value.replace(/"/g, "\"\"")}"`;
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
 }
@@ -99,6 +99,32 @@ function downloadCsv(rows: CandidateStat[]): void {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function VoteChart({ title, rows }: { title: string; rows: CandidateStat[] }) {
+  return (
+    <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+      <h2 className="mb-5 text-xl font-semibold text-[#f2d493]">{title}</h2>
+      <div className="space-y-4">
+        {rows.map((row) => (
+          <div key={`${row.section}-${row.candidateId.toString()}`}>
+            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+              <span className="text-[#f6f4f2]">{row.candidateName}</span>
+              <strong className="text-[#f2d493]">
+                {row.votes.toString()} vote ({row.percentage.toFixed(2)}%)
+              </strong>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500"
+                style={{ width: `${Math.max(row.percentage, 0)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
 }
 
 export default function AdminPage() {
@@ -230,114 +256,106 @@ export default function AdminPage() {
 
   if (!authChecked && loading) {
     return (
-      <section className="card">
-        <p>Memverifikasi akses admin...</p>
+      <section className="grid min-h-screen place-items-center bg-[#130d0e] px-6 text-[#f6f4f2]">
+        <div className="rounded-2xl border border-[#f2d493]/20 bg-black/40 px-8 py-7">Memverifikasi akses admin...</div>
       </section>
     );
   }
 
   if (forbidden) {
     return (
-      <section className="card">
-        <p className="kicker">Akses Ditolak</p>
-        <h1>Halaman ini khusus admin</h1>
-        <p className="muted">Akun Anda tidak memiliki role admin.</p>
+      <section className="grid min-h-screen place-items-center bg-[#130d0e] px-6 text-[#f6f4f2]">
+        <div className="max-w-xl rounded-2xl border border-[#f2d493]/20 bg-black/40 p-8 shadow-soft">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Akses Ditolak</p>
+          <h1 className="text-3xl font-bold">Halaman ini khusus admin</h1>
+          <p className="mt-3 text-white/75">Akun Anda tidak memiliki role admin.</p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="card admin-panel">
-      <div className="admin-header">
-        <div>
-          <p className="kicker">Admin Panel</p>
-          <h1>Dashboard Hasil Voting</h1>
-          <p className="muted">Login sebagai: {adminEmail || "-"}</p>
-        </div>
-        <button onClick={() => downloadCsv(allStats)} disabled={loading || allStats.length === 0}>
-          Export CSV
-        </button>
-      </div>
+    <section
+      className="relative min-h-screen overflow-hidden bg-[#7a3139] bg-cover bg-center bg-no-repeat px-4 py-10 text-[#f6f4f2] md:px-8"
+      style={{ backgroundImage: "url('/fe/imss-home.png')" }}
+    >
+      <div className="noise-overlay pointer-events-none absolute inset-0 z-[1] opacity-10" />
+      <div className="relative z-[2] mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <header className="rounded-2xl border border-[#f2d493]/30 bg-black/40 p-6 shadow-soft backdrop-blur">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Admin Panel</p>
+              <h1 className="text-3xl font-bold">Dashboard Hasil Voting</h1>
+              <p className="mt-2 text-sm text-white/75">Login sebagai: {adminEmail || "-"}</p>
+            </div>
+            <button
+              className="rounded-full border border-[#f2d493]/60 px-5 py-2.5 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => downloadCsv(allStats)}
+              disabled={loading || allStats.length === 0}
+            >
+              Export CSV
+            </button>
+          </div>
+          {error ? <p className="mt-4 rounded-lg border border-red-300/30 bg-red-900/30 px-4 py-3 text-sm text-red-100">{error}</p> : null}
+        </header>
 
-      {error ? <p className="admin-error">{error}</p> : null}
+        <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+          <h2 className="text-xl font-semibold text-[#f2d493]">Kelola Admin SSO</h2>
+          <p className="mt-1 text-sm text-white/75">Masukkan username SSO UI (contoh: m.naufal41)</p>
 
-      <article className="admin-chart-card">
-        <h2>Kelola Admin SSO</h2>
-        <p className="muted">Masukkan username SSO UI (contoh: m.naufal41)</p>
-        <div className="admin-form-row">
-          <input
-            className="admin-input"
-            value={newAdminUsername}
-            onChange={(e) => setNewAdminUsername(e.target.value)}
-            placeholder="username sso ui"
-          />
-          <button onClick={addAdmin} disabled={savingAdmin || !newAdminUsername.trim()}>
-            Tambah Admin
-          </button>
-        </div>
-        {adminMutationError ? <p className="admin-error">{adminMutationError}</p> : null}
-        <div className="admin-badges">
-          {adminUsers.map((username) => (
-            <div className="admin-badge" key={username}>
-              <span>{username}</span>
-              <button
-                className="admin-remove-btn"
-                onClick={() => removeAdmin(username)}
-                disabled={savingAdmin || username === selfUsername}
-                title={username === selfUsername ? "Tidak bisa hapus akun yang sedang dipakai" : "Hapus admin"}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              className="h-11 w-full rounded-xl border border-white/20 bg-black/40 px-4 text-sm outline-none ring-0 placeholder:text-white/45 focus:border-[#f2d493]/70"
+              value={newAdminUsername}
+              onChange={(e) => setNewAdminUsername(e.target.value)}
+              placeholder="username sso ui"
+            />
+            <button
+              className="h-11 rounded-xl border border-[#f2d493]/60 px-5 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={addAdmin}
+              disabled={savingAdmin || !newAdminUsername.trim()}
+            >
+              Tambah Admin
+            </button>
+          </div>
+
+          {adminMutationError ? <p className="mt-3 text-sm text-red-200">{adminMutationError}</p> : null}
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {adminUsers.map((username) => (
+              <div
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-3 py-1.5 text-xs"
+                key={username}
               >
-                Hapus
-              </button>
-            </div>
-          ))}
+                <span>{username}</span>
+                <button
+                  className="rounded-full border border-red-300/50 px-2 py-0.5 text-[11px] text-red-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => removeAdmin(username)}
+                  disabled={savingAdmin || username === selfUsername}
+                  title={username === selfUsername ? "Tidak bisa hapus akun yang sedang dipakai" : "Hapus admin"}
+                >
+                  Hapus
+                </button>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Total Vote Ketua Umum</h3>
+            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{totalKetumVotes.toString()}</p>
+          </article>
+          <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+            <h3 className="text-sm uppercase tracking-[0.14em] text-white/65">Total Vote Wakil Ketua Umum</h3>
+            <p className="mt-2 text-4xl font-bold text-[#f2d493]">{totalWaketumVotes.toString()}</p>
+          </article>
         </div>
-      </article>
 
-      <div className="admin-summary-grid">
-        <article className="admin-summary-card">
-          <h3>Total Vote Ketua Umum</h3>
-          <p>{totalKetumVotes.toString()}</p>
-        </article>
-        <article className="admin-summary-card">
-          <h3>Total Vote Wakil Ketua Umum</h3>
-          <p>{totalWaketumVotes.toString()}</p>
-        </article>
-      </div>
-
-      <div className="admin-chart-grid">
-        <article className="admin-chart-card">
-          <h2>Grafik Ketua Umum</h2>
-          {ketumStats.map((row) => (
-            <div className="chart-row" key={`ketum-${row.candidateId.toString()}`}>
-              <div className="chart-row-head">
-                <span>{row.candidateName}</span>
-                <strong>
-                  {row.votes.toString()} vote ({row.percentage.toFixed(2)}%)
-                </strong>
-              </div>
-              <div className="chart-track">
-                <div className="chart-fill" style={{ width: `${Math.max(row.percentage, 0)}%` }} />
-              </div>
-            </div>
-          ))}
-        </article>
-
-        <article className="admin-chart-card">
-          <h2>Grafik Wakil Ketua Umum</h2>
-          {waketumStats.map((row) => (
-            <div className="chart-row" key={`waketum-${row.candidateId.toString()}`}>
-              <div className="chart-row-head">
-                <span>{row.candidateName}</span>
-                <strong>
-                  {row.votes.toString()} vote ({row.percentage.toFixed(2)}%)
-                </strong>
-              </div>
-              <div className="chart-track">
-                <div className="chart-fill" style={{ width: `${Math.max(row.percentage, 0)}%` }} />
-              </div>
-            </div>
-          ))}
-        </article>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <VoteChart title="Grafik Ketua Umum" rows={ketumStats} />
+          <VoteChart title="Grafik Wakil Ketua Umum" rows={waketumStats} />
+        </div>
       </div>
     </section>
   );

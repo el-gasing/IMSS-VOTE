@@ -36,6 +36,8 @@ export function buildCasLoginUrl(serviceUrl: string): string {
   const base = normalizeCasBaseUrl(env.SSO_UI_CAS_URL);
   const url = new URL(`${base}/login`);
   url.searchParams.set("service", serviceUrl);
+  // Force CAS to re-prompt credentials instead of silently reusing last SSO session.
+  url.searchParams.set("renew", "true");
   return url.toString();
 }
 
