@@ -44,6 +44,11 @@ app.use(async (req, res, next) => {
     return;
   }
 
+  if (req.path.startsWith("/admin")) {
+    next();
+    return;
+  }
+
   let actorSub: string | null = null;
   let actorEmail: string | null = null;
 

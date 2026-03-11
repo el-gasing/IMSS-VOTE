@@ -18,6 +18,7 @@ export default function HomePage() {
   const [toast, setToast] = useState("");
   const [navigating, setNavigating] = useState(false);
   const [shake, setShake] = useState(false);
+  const [shakeLogs, setShakeLogs] = useState(false);
 
   const toastVisible = useMemo(() => Boolean(toast), [toast]);
 
@@ -57,10 +58,22 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [shake]);
 
+  useEffect(() => {
+    if (!shakeLogs) return;
+    const timer = setTimeout(() => setShakeLogs(false), 450);
+    return () => clearTimeout(timer);
+  }, [shakeLogs]);
+
   function showAlreadyVotedToast(): void {
     setToast("Anda sudah menggunakan hak pilih");
     setShake(false);
     requestAnimationFrame(() => setShake(true));
+  }
+
+  function showLoginRequiredForLogsToast(): void {
+    setToast("Silahkan login terlebih dahulu");
+    setShakeLogs(false);
+    requestAnimationFrame(() => setShakeLogs(true));
   }
 
   function handleVoteNow(): void {
@@ -78,6 +91,15 @@ export default function HomePage() {
 
     setNavigating(true);
     router.push("/vote");
+  }
+
+  function handleViewLogs(): void {
+    if (checking || navigating) return;
+    if (!isAuthenticated) {
+      showLoginRequiredForLogsToast();
+      return;
+    }
+    router.push("/logs");
   }
 
   return (
@@ -131,8 +153,10 @@ export default function HomePage() {
               {checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
             </button>
             <button
-              className="rounded-full border-2 border-[#f2d493] bg-black/20 px-8 py-3 text-base font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d]"
-              onClick={() => router.push("/logs")}
+              className={`rounded-full border-2 border-[#f2d493] bg-black/20 px-8 py-3 text-base font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d] ${
+                shakeLogs ? "btn-shake" : ""
+              }`}
+              onClick={handleViewLogs}
             >
               VIEW LOGS
             </button>
