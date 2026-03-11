@@ -116,15 +116,23 @@ export default function HomePage() {
 
         <div className="z-[2] w-full max-w-[800px] translate-y-[18px] px-5 text-center md:-translate-y-6">
           <h1 className="mb-5 text-[clamp(34px,5vw,64px)] font-bold tracking-[1px]">PEMIRA IMSS UI</h1>
-          <button
-            className={`rounded-full border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition hover:bg-white hover:text-[#c2410c] disabled:cursor-wait disabled:opacity-70 ${
-              shake ? "btn-shake" : ""
-            }`}
-            onClick={handleVoteNow}
-            disabled={checking || navigating}
-          >
-            {checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              className={`rounded-full border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition hover:bg-white hover:text-[#c2410c] disabled:cursor-wait disabled:opacity-70 ${
+                shake ? "btn-shake" : ""
+              }`}
+              onClick={handleVoteNow}
+              disabled={checking || navigating}
+            >
+              {checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
+            </button>
+            <button
+              className="rounded-full border border-[#f2d493] bg-black/20 px-6 py-3 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d]"
+              onClick={() => router.push("/logs")}
+            >
+              VIEW LOGS
+            </button>
+          </div>
         </div>
       </div>
     </section>
