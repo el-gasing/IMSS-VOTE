@@ -28,6 +28,22 @@ interface AdminVotesResponse {
   votes: AdminVoteRow[];
 }
 
+interface ActivityLogRow {
+  id: string;
+  actor_sub: string | null;
+  actor_email: string | null;
+  action: string;
+  method: string;
+  path: string;
+  status_code: number;
+  created_at: string;
+}
+
+interface AdminLogsResponse {
+  logs: ActivityLogRow[];
+  error?: string;
+}
+
 function escapeCsv(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -90,9 +106,25 @@ export default function AdminPage() {
   const [error, setError] = useState<string>("");
   const [adminUsers, setAdminUsers] = useState<string[]>([]);
   const [votes, setVotes] = useState<AdminVoteRow[]>([]);
+  const [logs, setLogs] = useState<ActivityLogRow[]>([]);
   const [newAdminUsername, setNewAdminUsername] = useState("");
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [adminMutationError, setAdminMutationError] = useState("");
+  const [adminActionLoading, setAdminActionLoading] = useState(false);
+  const [adminActionError, setAdminActionError] = useState("");
+
+  async function fetchLogs(): Promise<void> {
+    const logsRes = await fetch("/api/admin/logs?limit=200", { credentials: "include" });
+    if (!logsRes.ok) return;
+    const logsData = (await logsRes.json()) as AdminLogsResponse;
+    setLogs(logsData.logs || []);
+  }
+
+  async function refreshLogsAfterMutation(): Promise<void> {
+    // Small delay so activity log middleware has time to persist the DELETE action.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await fetchLogs();
+  }
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -115,9 +147,10 @@ export default function AdminPage() {
         setSelfUsername(me.user.sub);
         setAuthChecked(true);
 
-        const [adminRes, votesRes] = await Promise.all([
+        const [adminRes, votesRes, logsRes] = await Promise.all([
           fetch("/api/admin/users", { credentials: "include" }),
-          fetch("/api/admin/votes", { credentials: "include" })
+          fetch("/api/admin/votes", { credentials: "include" }),
+          fetch("/api/admin/logs?limit=200", { credentials: "include" })
         ]);
 
         if (adminRes.ok) {
@@ -128,6 +161,11 @@ export default function AdminPage() {
         if (votesRes.ok) {
           const voteData = (await votesRes.json()) as AdminVotesResponse;
           setVotes(voteData.votes || []);
+        }
+
+        if (logsRes.ok) {
+          const logsData = (await logsRes.json()) as AdminLogsResponse;
+          setLogs(logsData.logs || []);
         }
       } catch (err) {
         setError((err as Error).message || "Gagal memuat data admin");
@@ -185,6 +223,49 @@ export default function AdminPage() {
       setAdminMutationError((err as Error).message || "Gagal menghapus admin");
     } finally {
       setSavingAdmin(false);
+    }
+  }
+
+  async function deleteLogById(id: string): Promise<void> {
+    setAdminActionLoading(true);
+    setAdminActionError("");
+    try {
+      const res = await fetch(`/api/admin/logs/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal menghapus log");
+      }
+      await refreshLogsAfterMutation();
+    } catch (err) {
+      setAdminActionError((err as Error).message || "Gagal menghapus log");
+    } finally {
+      setAdminActionLoading(false);
+    }
+  }
+
+  async function clearAllLogs(): Promise<void> {
+    const confirmed = window.confirm("Hapus semua activity log?");
+    if (!confirmed) return;
+
+    setAdminActionLoading(true);
+    setAdminActionError("");
+    try {
+      const res = await fetch("/api/admin/logs/all", {
+        method: "DELETE",
+        credentials: "include"
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal menghapus semua log");
+      }
+      await refreshLogsAfterMutation();
+    } catch (err) {
+      setAdminActionError((err as Error).message || "Gagal menghapus semua log");
+    } finally {
+      setAdminActionLoading(false);
     }
   }
 
@@ -319,6 +400,59 @@ export default function AdminPage() {
                     <td className="px-3 py-2">{new Date(row.created_at).toLocaleString("id-ID")}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-[#f2d493]/20 bg-black/30 p-6 shadow-soft backdrop-blur">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xl font-semibold text-[#f2d493]">Activity Logs</h2>
+            <button
+              className="rounded-lg border border-red-300/60 px-3 py-1.5 text-xs text-red-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={clearAllLogs}
+              disabled={adminActionLoading || logs.length === 0}
+            >
+              Hapus Semua Log
+            </button>
+          </div>
+          {adminActionError ? <p className="mb-3 text-sm text-red-200">{adminActionError}</p> : null}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-white/15 text-[#f2d493]">
+                  <th className="px-3 py-2 font-semibold">Waktu</th>
+                  <th className="px-3 py-2 font-semibold">Aktor</th>
+                  <th className="px-3 py-2 font-semibold">Aksi</th>
+                  <th className="px-3 py-2 font-semibold">Status</th>
+                  <th className="px-3 py-2 font-semibold">Hapus</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((row) => (
+                  <tr key={row.id} className="border-b border-white/10 text-white/85">
+                    <td className="px-3 py-2">{new Date(row.created_at).toLocaleString("id-ID")}</td>
+                    <td className="px-3 py-2">{row.actor_email || row.actor_sub || "-"}</td>
+                    <td className="px-3 py-2">{row.action}</td>
+                    <td className="px-3 py-2">{row.status_code}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="rounded-lg border border-red-300/60 px-2 py-1 text-xs text-red-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => deleteLogById(row.id)}
+                        disabled={adminActionLoading}
+                      >
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-4 text-white/65">
+                      Tidak ada log.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>

@@ -29,12 +29,17 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS"]
+    methods: ["GET", "POST", "DELETE", "OPTIONS"]
   })
 );
 
 app.use(async (req, res, next) => {
   if (req.path === "/health") {
+    next();
+    return;
+  }
+
+  if (req.method.toUpperCase() === "DELETE") {
     next();
     return;
   }
@@ -95,6 +100,9 @@ const voteRecordBodySchema = z.object({
 });
 const voteCastBodySchema = z.object({
   choice: z.enum(["paslon1", "kotak_kosong"])
+});
+const deleteLogParamsSchema = z.object({
+  id: z.string().uuid()
 });
 
 type AdminVoteChoice = "paslon1" | "kotak_kosong" | "unknown";
@@ -638,6 +646,41 @@ app.get("/admin/votes", requireAuth, requireAdmin, async (_req, res) => {
   });
 
   res.json({ votes });
+});
+
+app.get("/admin/logs", requireAuth, requireAdmin, async (req, res) => {
+  const parsedLimit = typeof req.query.limit === "string" ? Number.parseInt(req.query.limit, 10) : 300;
+  const logs = await listActivityLogs(parsedLimit);
+  res.json({ logs });
+});
+
+app.delete("/admin/logs/all", requireAuth, requireAdmin, async (_req, res) => {
+  const result = await pool.query(`DELETE FROM activity_logs`);
+  res.json({ ok: true, deleted: result.rowCount ?? 0 });
+});
+
+app.delete("/admin/logs/:id", requireAuth, requireAdmin, async (req, res) => {
+  const parsed = deleteLogParamsSchema.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid log id" });
+    return;
+  }
+
+  const result = await pool.query(
+    `
+      DELETE FROM activity_logs
+      WHERE id = $1
+      RETURNING id
+    `,
+    [parsed.data.id]
+  );
+
+  if (!result.rows.length) {
+    res.status(404).json({ error: "Log not found" });
+    return;
+  }
+
+  res.json({ ok: true, id: parsed.data.id });
 });
 
 app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {

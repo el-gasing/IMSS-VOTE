@@ -27,6 +27,8 @@ export default function VotePage() {
   const [toast, setToast] = useState("");
   const [view, setView] = useState<ViewMode>("vote");
   const [txHash, setTxHash] = useState("");
+  const [confirmChoice, setConfirmChoice] = useState<VoteChoice | null>(null);
+  const [confirmStep, setConfirmStep] = useState<1 | 2>(1);
 
   const toastVisible = useMemo(() => Boolean(toast), [toast]);
 
@@ -114,6 +116,35 @@ export default function VotePage() {
     }
   }
 
+  function openVoteConfirmation(choice: VoteChoice): void {
+    if (submitting || alreadyVoted) return;
+    setConfirmChoice(choice);
+    setConfirmStep(1);
+  }
+
+  function closeVoteConfirmation(): void {
+    if (submitting) return;
+    setConfirmChoice(null);
+    setConfirmStep(1);
+  }
+
+  function proceedToSecondConfirmation(): void {
+    if (!confirmChoice || submitting) return;
+    setConfirmStep(2);
+  }
+
+  function backToFirstConfirmation(): void {
+    if (submitting) return;
+    setConfirmStep(1);
+  }
+
+  async function confirmAndCastVote(): Promise<void> {
+    if (!confirmChoice) return;
+    const choice = confirmChoice;
+    setConfirmChoice(null);
+    await castVote(choice);
+  }
+
   if (loading) {
     return (
       <section className="grid min-h-screen place-items-center bg-[#130d0e] text-[#f6f4f2]">
@@ -153,12 +184,12 @@ export default function VotePage() {
             <div className="mt-6 flex flex-wrap justify-center gap-5 sm:mt-7 sm:gap-8">
               <article className="w-full max-w-[360px] overflow-hidden rounded-xl border border-white/15 bg-white/5 transition hover:-translate-y-2 hover:border-white/30 hover:shadow-soft">
                 <img className="block aspect-video w-full object-cover" src="/fe/Paslon1.jpg" alt="Paslon 1" />
-                <div className="px-4 pb-5 pt-4 text-center sm:pb-6 sm:pt-5">
+                <div className="flex min-h-[220px] flex-col items-center px-4 pb-5 pt-4 text-center sm:pb-6 sm:pt-5">
                   <p className="text-[13px] tracking-[1.5px] text-white/75">PASLON 01</p>
                   <p className="my-2 text-lg leading-[1.3] sm:my-3 sm:text-xl">Rifqi Ramadhani<br />M Naufal Zhafran</p>
                   <button
-                    className="min-w-[150px] rounded-full border-2 border-white bg-transparent px-6 py-2.5 text-base transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
-                    onClick={() => castVote("paslon1")}
+                    className="mt-auto min-w-[150px] rounded-full border-2 border-white bg-transparent px-6 py-2.5 text-base transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
+                    onClick={() => openVoteConfirmation("paslon1")}
                     disabled={submitting || alreadyVoted}
                   >
                     {submitting ? "MEMPROSES..." : "PILIH"}
@@ -168,12 +199,12 @@ export default function VotePage() {
 
               <article className="w-full max-w-[360px] overflow-hidden rounded-xl border border-white/15 bg-white/5 transition hover:-translate-y-2 hover:border-white/30 hover:shadow-soft">
                 <img className="block aspect-video w-full object-cover" src="/fe/kotakkosong.jpg" alt="Kotak Kosong" />
-                <div className="px-4 pb-5 pt-4 text-center sm:pb-6 sm:pt-5">
+                <div className="flex min-h-[220px] flex-col items-center px-4 pb-5 pt-4 text-center sm:pb-6 sm:pt-5">
                   <p className="text-[13px] tracking-[1.5px] text-white/75">KOTAK KOSONG</p>
                   <p className="my-2 text-lg leading-[1.3] sm:my-3 sm:text-xl">Tidak memilih kandidat</p>
                   <button
-                    className="min-w-[150px] rounded-full border-2 border-white bg-transparent px-6 py-2.5 text-base transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
-                    onClick={() => castVote("kotak_kosong")}
+                    className="mt-auto min-w-[150px] rounded-full border-2 border-white bg-transparent px-6 py-2.5 text-base transition hover:bg-white hover:text-[#c2410c] disabled:cursor-not-allowed disabled:opacity-55"
+                    onClick={() => openVoteConfirmation("kotak_kosong")}
                     disabled={submitting || alreadyVoted}
                   >
                     {submitting ? "MEMPROSES..." : "PILIH"}
@@ -182,6 +213,49 @@ export default function VotePage() {
               </article>
             </div>
           </div>
+
+          {confirmChoice ? (
+            <div className="absolute inset-0 z-[5] grid place-items-center bg-black/65 px-4">
+              <div className="w-full max-w-md rounded-xl border border-white/20 bg-[#1a1a1a]/95 p-5 text-center shadow-soft sm:p-6">
+                <h2 className="text-xl font-semibold sm:text-2xl">Konfirmasi Vote</h2>
+                <p className="mt-3 text-sm text-white/85 sm:text-base">
+                  {confirmStep === 1 ? (
+                    <>
+                      Anda akan memilih{" "}
+                      <span className="font-semibold text-white">
+                        {confirmChoice === "paslon1" ? "PASLON 01" : "KOTAK KOSONG"}
+                      </span>
+                      . Lanjut ke konfirmasi akhir?
+                    </>
+                  ) : (
+                    <>
+                      Konfirmasi terakhir: Anda yakin mengirim vote untuk{" "}
+                      <span className="font-semibold text-white">
+                        {confirmChoice === "paslon1" ? "PASLON 01" : "KOTAK KOSONG"}
+                      </span>
+                      ? Pilihan tidak dapat diubah setelah dikirim.
+                    </>
+                  )}
+                </p>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    className="rounded-full border border-white/50 px-5 py-2 text-sm text-white transition hover:bg-white/10 disabled:opacity-60 sm:text-base"
+                    onClick={confirmStep === 1 ? closeVoteConfirmation : backToFirstConfirmation}
+                    disabled={submitting}
+                  >
+                    {confirmStep === 1 ? "BATAL" : "KEMBALI"}
+                  </button>
+                  <button
+                    className="rounded-full border-2 border-white bg-white px-5 py-2 text-sm font-semibold text-[#1b1b1b] transition hover:bg-transparent hover:text-white disabled:opacity-60 sm:text-base"
+                    onClick={confirmStep === 1 ? proceedToSecondConfirmation : confirmAndCastVote}
+                    disabled={submitting}
+                  >
+                    {submitting ? "MEMPROSES..." : confirmStep === 1 ? "LANJUT" : "YA, KIRIM VOTE"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
