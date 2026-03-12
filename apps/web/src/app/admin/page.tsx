@@ -100,7 +100,7 @@ function PercentBar({ label, value, total }: { label: string; value: number; tot
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
-  const [forbidden, setForbidden] = useState(false);
+  const [accessNotice, setAccessNotice] = useState<"none" | "unauthenticated" | "forbidden">("none");
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [selfUsername, setSelfUsername] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -133,19 +133,18 @@ export default function AdminPage() {
         const me = (meRes.ok ? await meRes.json() : { authenticated: false }) as MeResponse;
 
         if (!me.authenticated) {
-          window.location.href = "/auth/login";
+          setAccessNotice("unauthenticated");
           return;
         }
 
         if (!me.user?.isAdmin) {
-          setForbidden(true);
-          setAuthChecked(true);
+          setAccessNotice("forbidden");
           return;
         }
 
+        setAccessNotice("none");
         setAdminEmail(me.user.email);
         setSelfUsername(me.user.sub);
-        setAuthChecked(true);
 
         const [adminRes, votesRes, logsRes] = await Promise.all([
           fetch("/api/admin/users", { credentials: "include" }),
@@ -170,11 +169,15 @@ export default function AdminPage() {
       } catch (err) {
         setError((err as Error).message || "Gagal memuat data admin");
       } finally {
+        setAuthChecked(true);
         setLoading(false);
       }
     }
 
-    load().catch(() => setLoading(false));
+    load().catch(() => {
+      setAuthChecked(true);
+      setLoading(false);
+    });
   }, []);
 
   const totalVotes = votes.length;
@@ -277,13 +280,45 @@ export default function AdminPage() {
     );
   }
 
-  if (forbidden) {
+  if (accessNotice === "unauthenticated") {
     return (
       <section className="grid min-h-screen place-items-center bg-[#130d0e] px-6 text-[#f6f4f2]">
         <div className="max-w-xl rounded-2xl border border-[#f2d493]/20 bg-black/40 p-8 shadow-soft">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Akses Ditolak</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Pemberitahuan</p>
+          <h1 className="text-3xl font-bold">Login diperlukan untuk akses admin</h1>
+          <p className="mt-3 text-white/75">Silakan login dengan akun admin terlebih dahulu untuk membuka panel admin.</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <a
+              className="rounded-full border border-[#f2d493]/60 px-4 py-2 text-sm font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d]"
+              href="/api/auth/cas/login?redirect=/admin"
+            >
+              Login SSO UI
+            </a>
+            <a
+              className="rounded-full border border-white/30 px-4 py-2 text-sm text-white/90 transition hover:bg-white/10"
+              href="/"
+            >
+              Kembali ke Beranda
+            </a>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (accessNotice === "forbidden") {
+    return (
+      <section className="grid min-h-screen place-items-center bg-[#130d0e] px-6 text-[#f6f4f2]">
+        <div className="max-w-xl rounded-2xl border border-[#f2d493]/20 bg-black/40 p-8 shadow-soft">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Pemberitahuan</p>
           <h1 className="text-3xl font-bold">Halaman ini khusus admin</h1>
           <p className="mt-3 text-white/75">Akun Anda tidak memiliki role admin.</p>
+          <a
+            className="mt-5 inline-block rounded-full border border-white/30 px-4 py-2 text-sm text-white/90 transition hover:bg-white/10"
+            href="/"
+          >
+            Kembali ke Beranda
+          </a>
         </div>
       </section>
     );
