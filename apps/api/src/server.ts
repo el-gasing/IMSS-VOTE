@@ -451,6 +451,51 @@ app.get("/vote/status", requireAuth, async (req, res) => {
   res.json({ hasVoted: true, vote: vote.rows[0] });
 });
 
+app.get("/results/summary", async (_req, res) => {
+  const rows = await pool.query(
+    `
+      SELECT
+        ketum_candidate_id,
+        waketum_candidate_id
+      FROM votes
+    `
+  );
+
+  let paslon1 = 0;
+  let kotakKosong = 0;
+  let unknown = 0;
+
+  for (const row of rows.rows as Array<Record<string, unknown>>) {
+    const ketum = Number(row.ketum_candidate_id);
+    const waketum = Number(row.waketum_candidate_id);
+    if (ketum === 1 && waketum === 11) {
+      paslon1 += 1;
+    } else if (ketum === 2 && waketum === 12) {
+      kotakKosong += 1;
+    } else {
+      unknown += 1;
+    }
+  }
+
+  res.json({
+    source: "database",
+    totalVotes: rows.rows.length,
+    ketum: [
+      { candidateId: 1, votes: paslon1 },
+      { candidateId: 2, votes: kotakKosong }
+    ],
+    waketum: [
+      { candidateId: 11, votes: paslon1 },
+      { candidateId: 12, votes: kotakKosong }
+    ],
+    byChoice: {
+      paslon1,
+      kotak_kosong: kotakKosong,
+      unknown
+    }
+  });
+});
+
 app.get("/logs", requireAuth, async (req, res) => {
   const parsedLimit = typeof req.query.limit === "string" ? Number.parseInt(req.query.limit, 10) : 300;
   const logs = await listActivityLogs(parsedLimit);

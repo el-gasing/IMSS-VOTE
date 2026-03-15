@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { electionAbi, electionAddress } from "@/lib/contract";
-import { publicClient } from "@/lib/evm";
 
 interface ResultItem {
-  candidateId: bigint;
-  votes: bigint;
+  candidateId: number;
+  votes: number;
 }
 
 interface Candidate {
-  id: bigint;
+  id: number;
   name: string;
 }
 
@@ -21,13 +19,13 @@ interface ResultRow {
 }
 
 const DEFAULT_KETUM: Candidate[] = [
-  { id: 1n, name: "Rifqi Ramadhani" },
-  { id: 2n, name: "Kotak Kosong" }
+  { id: 1, name: "Rifqi Ramadhani" },
+  { id: 2, name: "Kotak Kosong" }
 ];
 
 const DEFAULT_WAKETUM: Candidate[] = [
-  { id: 11n, name: "M Naufal Zhafran" },
-  { id: 12n, name: "Kotak Kosong" }
+  { id: 11, name: "M Naufal Zhafran" },
+  { id: 12, name: "Kotak Kosong" }
 ];
 
 const CONFETTI_COLORS = ["#f2d493", "#f87171", "#60a5fa", "#34d399", "#fbbf24", "#ffffff"];
@@ -53,36 +51,29 @@ export default function ResultsPage() {
   const [waketumCandidates, setWaketumCandidates] = useState<Candidate[]>(DEFAULT_WAKETUM);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sourceLabel, setSourceLabel] = useState("database");
   const [triggerConfetti, setTriggerConfetti] = useState(false);
   const surpriseRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const chainKetum = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getKetumCandidates"
-        })) as Candidate[];
+        const summaryRes = await fetch("/api/results/summary", { credentials: "include" });
+        if (!summaryRes.ok) {
+          throw new Error("Gagal memuat ringkasan hasil voting.");
+        }
 
-        const chainWaketum = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getWaketumCandidates"
-        })) as Candidate[];
+        const summary = (await summaryRes.json()) as {
+          source?: string;
+          ketum?: Array<{ candidateId: number; votes: number }>;
+          waketum?: Array<{ candidateId: number; votes: number }>;
+        };
 
-        const [ketumResult, waketumResult] = (await publicClient.readContract({
-          address: electionAddress,
-          abi: electionAbi,
-          functionName: "getResults"
-        })) as [ResultItem[], ResultItem[]];
-
-        setKetum(ketumResult);
-        setWaketum(waketumResult);
-        if (chainKetum.length) setKetumCandidates(chainKetum);
-        if (chainWaketum.length) setWaketumCandidates(chainWaketum);
-      } catch {
-        setError("Data on-chain belum dapat dibaca. Menampilkan template hasil sementara.");
+        setSourceLabel(summary.source || "database");
+        setKetum(summary.ketum || []);
+        setWaketum(summary.waketum || []);
+      } catch (err) {
+        setError((err as Error).message || "Data hasil belum tersedia. Menampilkan template sementara.");
       } finally {
         setLoading(false);
       }
@@ -141,8 +132,9 @@ export default function ResultsPage() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#f2d493]">Rekap Final</p>
           <h1 className="text-3xl font-bold text-[#f2d493]">Hasil Voting IMSS UI</h1>
           <p className="mt-2 text-sm text-white/75">
-            {loading ? "Mengambil data on-chain..." : `Total suara terbaca: ${totalVotes} suara`}
+            {loading ? "Mengambil data hasil voting..." : `Total suara terbaca: ${totalVotes} suara`}
           </p>
+          <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/55">Sumber data: {sourceLabel}</p>
           {error ? <p className="mt-3 rounded-lg border border-amber-300/35 bg-amber-900/25 px-3 py-2 text-sm text-amber-100">{error}</p> : null}
         </article>
 
