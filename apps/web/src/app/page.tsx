@@ -148,7 +148,7 @@ export default function HomePage() {
 
         <div className="z-[2] w-full max-w-[800px] translate-y-[18px] px-5 text-center md:-translate-y-6">
           <h1 className="mb-5 text-[clamp(34px,5vw,64px)] font-bold tracking-[1px]">PEMIRA IMSS UI</h1>
-          {VOTING_ENDED ? <p className="mb-5 text-sm text-white/90 md:text-base">Masa voting telah berakhir. Terima kasih atas partisipasi Anda.</p> : null}
+          {VOTING_ENDED ? <p className="-mt-2 mb-5 text-sm text-white/90 md:text-base">Masa voting telah berakhir, Thankyou for your valuable participation!.</p> : null}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               className={`rounded-full border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition hover:bg-white hover:text-[#c2410c] disabled:cursor-wait disabled:opacity-70 ${
