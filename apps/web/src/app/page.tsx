@@ -27,8 +27,8 @@ export default function HomePage() {
           alt=""
         />
 
-        <div className="z-[2] mx-4 w-full max-w-4xl rounded-3xl border border-white/15 bg-black/35 px-6 py-12 text-center shadow-soft backdrop-blur md:px-10 md:py-14">
-          <h1 className="font-lydian text-[clamp(44px,7vw,90px)] leading-[0.9] tracking-[2px] text-[#f6f4f2] drop-shadow-[4px_4px_0_rgba(0,0,0,0.45)]">
+        <div className="z-[2] mx-4 w-full max-w-4xl px-6 py-12 text-center md:px-10 md:py-14">
+          <h1 className="text-[clamp(44px,7vw,90px)] font-bold leading-[0.9] tracking-[1px] text-[#f6f4f2] drop-shadow-[4px_4px_0_rgba(0,0,0,0.45)]">
             Pengumuman Pemira IMSS UI
           </h1>
           <p className="mt-4 text-[clamp(17px,2.2vw,30px)] font-semibold text-[#f2d493]">
