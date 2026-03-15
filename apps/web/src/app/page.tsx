@@ -9,6 +9,7 @@ interface MeResponse {
 }
 
 const API_BASE = "/api";
+const VOTING_ENDED = true;
 
 export default function HomePage() {
   const router = useRouter();
@@ -79,6 +80,11 @@ export default function HomePage() {
   function handleVoteNow(): void {
     if (navigating || checking) return;
 
+    if (VOTING_ENDED) {
+      router.push("/results");
+      return;
+    }
+
     if (!isAuthenticated) {
       window.location.href = `${API_BASE}/auth/cas/login?redirect=/vote`;
       return;
@@ -103,7 +109,7 @@ export default function HomePage() {
   }
 
   return (
-    <section className="relative min-h-screen w-full overflow-hidden text-[#f6f4f2]">
+    <section className="main-flow-no-select relative min-h-screen w-full overflow-hidden text-[#f6f4f2]">
       <div
         className={`fixed left-1/2 top-6 z-20 -translate-x-1/2 rounded-xl border border-white/20 bg-black/80 px-4 py-3 text-sm transition-all ${
           toastVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
@@ -142,6 +148,7 @@ export default function HomePage() {
 
         <div className="z-[2] w-full max-w-[800px] translate-y-[18px] px-5 text-center md:-translate-y-6">
           <h1 className="mb-5 text-[clamp(34px,5vw,64px)] font-bold tracking-[1px]">PEMIRA IMSS UI</h1>
+          {VOTING_ENDED ? <p className="mb-5 text-sm text-white/90 md:text-base">Masa voting telah berakhir. Terima kasih atas partisipasi Anda.</p> : null}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               className={`rounded-full border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition hover:bg-white hover:text-[#c2410c] disabled:cursor-wait disabled:opacity-70 ${
@@ -150,7 +157,7 @@ export default function HomePage() {
               onClick={handleVoteNow}
               disabled={checking || navigating}
             >
-              {checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
+              {VOTING_ENDED ? "LIHAT HASIL" : checking ? "CHECKING..." : hasVoted ? "SUDAH VOTE" : "VOTE NOW"}
             </button>
             <button
               className={`rounded-full border-2 border-[#f2d493] bg-black/20 px-8 py-3 text-base font-semibold text-[#f2d493] transition hover:bg-[#f2d493] hover:text-[#3a171d] ${

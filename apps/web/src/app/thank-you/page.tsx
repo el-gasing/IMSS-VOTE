@@ -20,7 +20,7 @@ export default function ThankYouPage() {
   }, []);
 
   return (
-    <section className="mx-auto grid min-h-screen w-full max-w-3xl place-items-center px-4 py-10">
+    <section className="main-flow-no-select mx-auto grid min-h-screen w-full max-w-3xl place-items-center px-4 py-10">
       <div className="rounded-2xl border border-white/15 bg-black/35 p-8 shadow-soft">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2d493]">Selesai</p>
         <h1 className="mt-2 text-3xl font-bold">Terima kasih telah memilih</h1>

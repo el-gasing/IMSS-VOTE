@@ -147,14 +147,14 @@ export default function VotePage() {
 
   if (loading) {
     return (
-      <section className="grid min-h-screen place-items-center bg-[#130d0e] text-[#f6f4f2]">
+      <section className="main-flow-no-select grid min-h-screen place-items-center bg-[#130d0e] text-[#f6f4f2]">
         <p>Memuat sesi login...</p>
       </section>
     );
   }
 
   return (
-    <section className="relative min-h-screen w-full overflow-x-hidden text-[#f6f4f2]">
+    <section className="main-flow-no-select relative min-h-screen w-full overflow-x-hidden text-[#f6f4f2]">
       <div
         className={`fixed left-1/2 top-6 z-20 -translate-x-1/2 rounded-xl border border-white/20 bg-black/80 px-4 py-3 text-sm transition-all ${
           toastVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"

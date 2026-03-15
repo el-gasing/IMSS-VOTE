@@ -90,3 +90,11 @@ a {
 .btn-shake {
   animation: btnShake 0.45s ease;
 }
+
+.main-flow-no-select,
+.main-flow-no-select * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
