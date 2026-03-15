@@ -91,6 +91,27 @@ a {
   animation: btnShake 0.45s ease;
 }
 
+@keyframes confettiFall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(14px, 115vh, 0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.confetti-fall {
+  animation-name: confettiFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
 .main-flow-no-select,
 .main-flow-no-select * {
   -webkit-touch-callout: none;
